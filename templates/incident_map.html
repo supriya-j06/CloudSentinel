@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CloudSentinel · Incident Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>body{font-family:Arial;margin:0;background:#f4f7fb;color:#172033}header{padding:18px;background:#14254a;color:white}header a{color:white}main{padding:20px}.note{color:#64748b;line-height:1.5}#map{height:68vh;min-height:420px;border-radius:12px;background:#ddd}.summary{background:white;padding:12px 16px;border-radius:10px;margin:12px 0}.popup{line-height:1.55;min-width:190px}</style><link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}"></head>
+<body><header><h2>CloudSentinel · Incident Map</h2><a href="/admin-dashboard">← Admin dashboard</a></header><main>
+<div class="summary"><b>Campus incident overview</b><div id="count">Loading incidents…</div><p class="note">Markers use the RVCE campus centre as an approximate location. They do not claim to identify the exact room or building.</p></div><div id="map"></div></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
+const campus=[12.9237,77.4987];
+const map=L.map('map').setView(campus,17);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+const incidents=[{% for i in incidents %}{id:{{i.id|tojson}},title:{{i.title|tojson}},description:{{i.description|tojson}},category:{{i.category|tojson}},location:{{i.location|tojson}},priority:{{i.priority|tojson}},status:{{i.status|tojson}}},{% endfor %}];
+document.getElementById('count').textContent=incidents.length+' incident(s)';
+const pins=[];
+incidents.forEach((x,n)=>{
+ // Spread markers slightly so multiple incidents remain individually clickable.
+ const pos=[campus[0]+(n%4)*0.00010,campus[1]+Math.floor(n/4)*0.00010];
+ const marker=L.marker(pos).addTo(map);
+ const box=document.createElement('div');box.className='popup';
+ const h=document.createElement('b');h.textContent='#'+x.id+' '+x.title;box.appendChild(h);
+ [['Location',x.location],['Category',x.category],['Description',x.description],['Priority',x.priority],['Status',x.status]].forEach(([k,v])=>{const p=document.createElement('p');p.textContent=k+': '+v;box.appendChild(p)});
+ const a=document.createElement('a');a.href='/incident/'+x.id;a.textContent='Open incident details';box.appendChild(a);
+ marker.bindPopup(box);pins.push(marker);
+});
+if(pins.length){map.fitBounds(L.featureGroup(pins).getBounds().pad(0.35),{maxZoom:18});}
+</script><script src="{{ url_for('static', filename='theme.js') }}"></script></body></html>
